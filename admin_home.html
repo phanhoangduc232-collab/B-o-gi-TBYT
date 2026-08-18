@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Quản trị{% endblock %}
+{% block content %}
+
+{% set total_items = counts.values() | map('first') | sum %}
+{% set total_files = counts.values() | map('last') | sum %}
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="num">{{ vendors|length }}</div><div class="lbl">Nhà cung cấp đã đăng ký</div></div>
+  <div class="stat-card"><div class="num">{{ total_items }}</div><div class="lbl">Dòng báo giá đã nộp</div></div>
+  <div class="stat-card"><div class="num">{{ total_files }}</div><div class="lbl">File đính kèm</div></div>
+  <div class="stat-card">
+    <div class="num" style="font-size:1.05rem">{{ {'before':'Chưa mở','open':'Đang mở','after':'Đã đóng'}[window_status] }}</div>
+    <div class="lbl">{{ open_at.strftime('%H:%M %d/%m') }} → {{ close_at.strftime('%H:%M %d/%m') }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header-row">
+    <div class="card-title" style="margin-bottom:0">Danh sách nhà cung cấp</div>
+    <a class="btn btn-success" href="{{ url_for('admin_export') }}">⬇ Xuất Excel tổng hợp</a>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Tên NCC</th><th>MST</th><th>Liên hệ</th><th>Số dòng báo giá</th>
+        <th>Số file</th><th>Đăng ký lúc</th><th>Cập nhật gần nhất</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for v in vendors %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><b>{{ v['ten_ncc'] }}</b></td>
+          <td>{{ v['mst'] }}</td>
+          <td>{{ v['nguoi_lien_he'] or '' }} {{ v['sdt'] or '' }}</td>
+          <td>{{ counts[v['id']][0] }}</td>
+          <td>{{ counts[v['id']][1] }}</td>
+          <td class="text-muted">{{ v['created_at'] | vn_dt }}</td>
+          <td class="text-muted">{{ v['submitted_at'] | vn_dt }}</td>
+          <td><a class="btn btn-sm btn-outline" href="{{ url_for('admin_vendor', vendor_id=v['id']) }}">Xem chi tiết</a></td>
+        </tr>
+        {% else %}
+        <tr class="empty-row"><td colspan="9">Chưa có nhà cung cấp nào đăng ký.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

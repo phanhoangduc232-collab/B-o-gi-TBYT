@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Chi tiết NCC{% endblock %}
+{% block content %}
+<a href="{{ url_for('admin_home') }}" class="btn btn-sm btn-outline" style="margin-bottom:16px">← Danh sách</a>
+
+<div class="card">
+  <div class="card-title" style="margin-bottom:2px">{{ vendor['ten_ncc'] }}</div>
+  <div class="card-subtitle">MST: {{ vendor['mst'] }} &middot; {{ vendor['dia_chi'] or '' }} &middot; {{ vendor['nguoi_lien_he'] or '' }} &middot; {{ vendor['sdt'] or '' }} &middot; {{ vendor['email'] or '' }}</div>
+</div>
+
+<div class="card">
+  <div class="card-title">Phụ lục I — Báo giá thiết bị</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Danh mục</th><th>Tên TM</th><th>Model</th><th>Hãng SX</th><th>Xuất xứ</th><th style="text-align:right">Đơn giá</th><th>Ngày BG</th></tr></thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it['ma_danh_muc'] }} — {{ category_by_ma[it['ma_danh_muc']]['ten'] if it['ma_danh_muc'] in category_by_ma else '' }}</td>
+          <td>{{ it['ten_thuong_mai'] }}</td><td>{{ it['model'] }}</td><td>{{ it['hang_sx'] }}</td><td>{{ it['xuat_xu'] }}</td>
+          <td style="text-align:right">{{ '{:,.0f}'.format(it['don_gia']) if it['don_gia'] is not none else '' }}</td><td>{{ it['ngay_bao_gia'] }}</td>
+        </tr>
+        {% else %}<tr class="empty-row"><td colspan="7">Không có dữ liệu.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Phụ lục II — Bảo trì mở rộng</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Danh mục</th><th style="text-align:right">Đơn giá gói 12 tháng</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        {% for m in maint %}
+        <tr><td>{{ m['ma_danh_muc'] }}</td><td style="text-align:right">{{ '{:,.0f}'.format(m['don_gia_baotri']) if m['don_gia_baotri'] is not none else '' }}</td><td>{{ m['ghi_chu'] }}</td></tr>
+        {% else %}<tr class="empty-row"><td colspan="3">Không có dữ liệu.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">File đính kèm</div>
+  <ul class="file-list">
+    {% for f in files %}
+    <li>
+      <span><span class="file-tag">{{ f['tag'] }}</span>{{ f['original_filename'] }}</span>
+      <a class="btn btn-sm btn-outline" href="{{ url_for('admin_download', file_id=f['id']) }}">Tải xuống</a>
+    </li>
+    {% else %}<li style="color:var(--ink-faint);border-style:dashed;justify-content:center">Không có file.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

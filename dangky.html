@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Đăng ký / Đăng nhập nhà cung cấp{% endblock %}
+{% block content %}
+<div class="container-narrow">
+
+  {% if status == 'before' %}
+  <div class="card hero">
+    <div class="icon">⏳</div>
+    <h4>Chưa đến thời gian mở nhận báo giá</h4>
+    <p>Hệ thống sẽ mở để nhà cung cấp đăng ký và nộp báo giá từ</p>
+    <div class="big-time">{{ open_at.strftime('%H:%M ngày %d/%m/%Y') }}</div>
+    <p style="margin-top:14px">đến {{ close_at.strftime('%H:%M ngày %d/%m/%Y') }}</p>
+    <p class="text-muted" style="margin-top:20px;font-size:.82rem">
+      Gói thầu: {{ goi_thau_ten }}<br>Yêu cầu báo giá số {{ ycbg_so }}
+    </p>
+  </div>
+
+  {% elif status == 'after' %}
+  <div class="card">
+    <div class="hero" style="padding-top:8px">
+      <div class="icon">🔒</div>
+      <h4>Đã hết thời hạn nhận báo giá</h4>
+      <p>Thời hạn nhận báo giá đã kết thúc lúc <b>{{ close_at.strftime('%H:%M ngày %d/%m/%Y') }}</b>.</p>
+      <p>Nếu quý công ty đã đăng ký trước đó, có thể đăng nhập lại để <b>xem lại</b> báo giá đã nộp (không thể chỉnh sửa thêm).</p>
+    </div>
+    <form method="post" action="{{ url_for('dangky') }}">
+      <input type="hidden" name="ten_ncc" value="(xem lại)">
+      <div class="field">
+        <label>Mã số thuế</label>
+        <input type="text" name="mst" required>
+      </div>
+      <div class="field">
+        <label>Mật khẩu đã đặt khi đăng ký</label>
+        <input type="password" name="mat_khau" required>
+      </div>
+      <button class="btn btn-outline btn-block" type="submit">Xem lại báo giá đã nộp</button>
+    </form>
+  </div>
+
+  {% else %}
+  <div class="card">
+    <div class="card-title">📝 Đăng ký / Đăng nhập nộp báo giá</div>
+    <p class="card-subtitle">Hệ thống đang mở nhận báo giá đến <b>{{ close_at.strftime('%H:%M %d/%m/%Y') }}</b>.</p>
+
+    <div class="alert alert-info" style="align-items:flex-start">
+      <span>
+        <b>Chưa từng đăng ký?</b> Điền đủ 3 trường bên dưới để tạo phiên báo giá mới — hãy tự đặt và
+        <b>ghi nhớ mật khẩu</b>, đây là cách duy nhất để quay lại chỉnh sửa trước hạn chót.<br><br>
+        <b>Đã đăng ký trước đó?</b> Chỉ cần nhập đúng Mã số thuế + Mật khẩu đã đặt để tiếp tục.
+      </span>
+    </div>
+
+    <form method="post" action="{{ url_for('dangky') }}">
+      <div class="field">
+        <label>Tên nhà cung cấp *</label>
+        <input type="text" name="ten_ncc" placeholder="VD: Công ty TNHH Thiết bị Y tế ABC" required>
+      </div>
+      <div class="field">
+        <label>Mã số thuế *</label>
+        <input type="text" name="mst" required>
+      </div>
+      <div class="field">
+        <label>Mật khẩu *</label>
+        <input type="password" name="mat_khau" required>
+        <div class="form-text">Đặt mật khẩu lần đầu (đăng ký mới), hoặc nhập đúng mật khẩu cũ (nếu đã đăng ký).</div>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Tiếp tục →</button>
+    </form>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

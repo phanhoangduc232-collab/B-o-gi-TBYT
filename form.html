@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Nhập báo giá{% endblock %}
+{% block content %}
+
+<div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+  <div>
+    <div class="card-title" style="margin-bottom:2px">{{ vendor['ten_ncc'] }}</div>
+    <div class="text-muted" style="font-size:.85rem">MST: {{ vendor['mst'] }}</div>
+  </div>
+  {% if not readonly %}
+  <div style="text-align:right">
+    <div class="text-muted" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;font-weight:700">Hạn nộp còn lại</div>
+    <div id="close-countdown" data-close-at="{{ close_at.isoformat() }}" style="font-weight:800;color:var(--brand);font-size:1.1rem">...</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if readonly %}
+<div class="alert alert-warning">🔒 Đã hết thời hạn nộp báo giá ({{ close_at.strftime('%H:%M %d/%m/%Y') }}) — bạn chỉ có thể xem lại, không thể chỉnh sửa thêm.</div>
+{% endif %}
+
+<div class="steps">
+  <span class="step-pill"><span class="num">1</span> Thông tin liên hệ</span>
+  <span class="step-pill"><span class="num">2</span> Bảng báo giá thiết bị</span>
+  <span class="step-pill"><span class="num">3</span> Bảo trì mở rộng</span>
+  <span class="step-pill"><span class="num">4</span> Tài liệu đính kèm</span>
+</div>
+
+<!-- 1. THONG TIN LIEN HE -->
+<div class="card">
+  <div class="card-title"><span class="section-icon">1</span> Thông tin nhà cung cấp</div>
+  <form method="post" action="{{ url_for('form_company') }}">
+    <div class="grid grid-2">
+      <div class="field"><label>Tên nhà cung cấp</label><input type="text" value="{{ vendor['ten_ncc'] }}" disabled></div>
+      <div class="field"><label>Mã số thuế</label><input type="text" value="{{ vendor['mst'] }}" disabled></div>
+      <div class="field"><label>Địa chỉ</label><input type="text" name="dia_chi" value="{{ vendor['dia_chi'] or '' }}" {{ 'disabled' if readonly }}></div>
+      <div class="field"><label>Người liên hệ</label><input type="text" name="nguoi_lien_he" value="{{ vendor['nguoi_lien_he'] or '' }}" {{ 'disabled' if readonly }}></div>
+      <div class="field"><label>Số điện thoại</label><input type="tel" name="sdt" value="{{ vendor['sdt'] or '' }}" {{ 'disabled' if readonly }}></div>
+      <div class="field"><label>Email</label><input type="email" name="email" value="{{ vendor['email'] or '' }}" {{ 'disabled' if readonly }}></div>
+    </div>
+    {% if not readonly %}<button class="btn btn-primary" type="submit">Lưu thông tin liên hệ</button>{% endif %}
+  </form>
+</div>
+
+<!-- 2. PHU LUC I -->
+<div class="card">
+  <div class="card-header-row">
+    <div>
+      <div class="card-title"><span class="section-icon">2</span> Phụ lục I — Bảng báo giá thiết bị</div>
+      <div class="card-subtitle" style="margin-bottom:0">Mỗi dòng tương ứng 1 danh mục thiết bị quý công ty chào giá.</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Danh mục</th><th>Tên thương mại</th><th>Model</th><th>Hãng SX</th><th>Xuất xứ</th>
+        <th style="text-align:right">Đơn giá (đã VAT)</th><th>Ngày báo giá</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for it in items %}
+        <tr>
+          <td>{{ it['ma_danh_muc'] }}</td>
+          <td>{{ it['ten_thuong_mai'] }}</td>
+          <td>{{ it['model'] }}</td>
+          <td>{{ it['hang_sx'] }}</td>
+          <td>{{ it['xuat_xu'] }}</td>
+          <td style="text-align:right">{{ '{:,.0f}'.format(it['don_gia']) if it['don_gia'] is not none else '' }}</td>
+          <td>{{ it['ngay_bao_gia'] }}</td>
+          <td>
+            {% if not readonly %}
+            <form method="post" action="{{ url_for('item_delete', item_id=it['id']) }}" onsubmit="return confirm('Xoá dòng này?');">
+              <button class="btn btn-sm btn-danger" type="submit">Xoá</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr class="empty-row"><td colspan="8">Chưa có dòng báo giá nào — thêm dòng đầu tiên bên dưới.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not readonly %}
+  <div class="add-panel">
+    <div class="add-panel-title">+ Thêm dòng báo giá mới</div>
+    <form method="post" action="{{ url_for('item_add') }}">
+      <div class="grid grid-3">
+        <div class="field">
+          <label>Danh mục</label>
+          <select name="ma_danh_muc" required>
+            <option value="">— chọn danh mục —</option>
+            {% for nhom, cats in categories|groupby('nhom') %}
+            <optgroup label="{{ nhom }}">
+              {% for cat in cats %}
+              <option value="{{ cat.ma }}">{{ cat.ma }} — {{ cat.ten }} ({{ cat.sl }} {{ cat.dvt }})</option>
+              {% endfor %}
+            </optgroup>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Tên thương mại</label><input type="text" name="ten_thuong_mai"></div>
+        <div class="field"><label>Ký/mã/Model</label><input type="text" name="model"></div>
+        <div class="field"><label>Hãng sản xuất</label><input type="text" name="hang_sx"></div>
+        <div class="field"><label>Xuất xứ</label><input type="text" name="xuat_xu"></div>
+        <div class="field"><label>Đơn giá (VND, đã VAT)</label><input type="text" class="money-input" name="don_gia" placeholder="VD: 24.800.000"></div>
+        <div class="field"><label>Ngày báo giá</label><input type="text" name="ngay_bao_gia" placeholder="dd/mm/yyyy"></div>
+      </div>
+      <button class="btn btn-primary" type="submit">+ Thêm dòng</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 3. PHU LUC II -->
+<div class="card">
+  <div class="card-title"><span class="section-icon">3</span> Phụ lục II — Bảo hành, bảo trì mở rộng</div>
+  <div class="card-subtitle">Giá dịch vụ sau 12 tháng bảo hành tiêu chuẩn, gói 12 tháng/thiết bị — không bắt buộc.</div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Danh mục</th><th style="text-align:right">Đơn giá gói 12 tháng (VND)</th><th>Ghi chú</th><th></th></tr></thead>
+      <tbody>
+        {% for m in maint %}
+        <tr>
+          <td>{{ m['ma_danh_muc'] }}</td>
+          <td style="text-align:right">{{ '{:,.0f}'.format(m['don_gia_baotri']) if m['don_gia_baotri'] is not none else '' }}</td>
+          <td>{{ m['ghi_chu'] }}</td>
+          <td>
+            {% if not readonly %}
+            <form method="post" action="{{ url_for('maint_delete', item_id=m['id']) }}" onsubmit="return confirm('Xoá dòng này?');">
+              <button class="btn btn-sm btn-danger" type="submit">Xoá</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr class="empty-row"><td colspan="4">Chưa có dữ liệu.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not readonly %}
+  <div class="add-panel">
+    <div class="add-panel-title">+ Thêm giá bảo trì mở rộng</div>
+    <form method="post" action="{{ url_for('maint_add') }}">
+      <div class="grid grid-3">
+        <div class="field">
+          <label>Danh mục</label>
+          <select name="ma_danh_muc" required>
+            <option value="">— chọn danh mục —</option>
+            {% for cat in categories %}
+            <option value="{{ cat.ma }}">{{ cat.ma }} — {{ cat.ten }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field"><label>Đơn giá gói 12 tháng</label><input type="text" class="money-input" name="don_gia_baotri" placeholder="VD: 1.000.000"></div>
+        <div class="field"><label>Ghi chú (nếu có)</label><input type="text" name="ghi_chu"></div>
+      </div>
+      <button class="btn btn-outline" type="submit">+ Thêm</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<!-- 4. FILES -->
+<div class="card">
+  <div class="card-title"><span class="section-icon">4</span> Tài liệu đính kèm</div>
+  <div class="card-subtitle">Catalogue, giấy phép lưu hành, Phụ lục III/IV và các tài liệu chứng minh khác theo YCBG.</div>
+
+  <ul class="file-list">
+    {% for f in files %}
+    <li>
+      <span><span class="file-tag">{{ f['tag'] }}</span>{{ f['original_filename'] }}</span>
+      <span>
+        <a class="btn btn-sm btn-outline" href="{{ url_for('file_download_own', file_id=f['id']) }}">Tải xuống</a>
+        {% if not readonly %}
+        <form class="d-inline" style="display:inline" method="post" action="{{ url_for('file_delete', file_id=f['id']) }}" onsubmit="return confirm('Xoá file này?');">
+          <button class="btn btn-sm btn-danger" type="submit">Xoá</button>
+        </form>
+        {% endif %}
+      </span>
+    </li>
+    {% else %}
+    <li style="color:var(--ink-faint);border-style:dashed;justify-content:center">Chưa có file nào.</li>
+    {% endfor %}
+  </ul>
+
+  {% if not readonly %}
+  <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+    <div class="grid grid-2" style="margin-bottom:14px">
+      <div class="field" style="margin-bottom:0">
+        <label>Loại tài liệu</label>
+        <select name="tag">
+          {% for tag, label in file_tags %}
+          <option value="{{ tag }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="dropzone">
+      <input type="file" name="file" id="file-input" required>
+      <div>📎 <span class="dz-label">Bấm để chọn file hoặc kéo-thả vào đây</span></div>
+      <div class="form-text">PDF, Word, Excel, ảnh, rar/zip — tối đa 25MB/file</div>
+    </div>
+    <div style="margin-top:14px"><button class="btn btn-primary" type="submit">Tải lên</button></div>
+  </form>
+  {% endif %}
+</div>
+
+{% endblock %}
