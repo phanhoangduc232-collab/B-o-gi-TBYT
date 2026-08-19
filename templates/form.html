@@ -58,9 +58,9 @@
         <b style="color: #084298; font-size: 14px;">📥 1. Tải biểu mẫu báo giá chuẩn:</b>
         <div style="font-size: 12px; color: #555;">Tải file về, điền các thiết bị chào giá theo đúng quy định.</div>
       </div>
-      <a href="{{ url_for('static', filename='mau_bao_gia.xlsx') }}" download class="btn btn-sm btn-primary" style="text-decoration: none; padding: 6px 14px; font-weight: bold; border-radius: 4px;">
-        Tải file mẫu Excel (.xlsx)
-      </a>
+      <a href="{{ url_for('static', filename='Mau_import_baogia.xlsx') }}" download class="btn btn-sm btn-primary" style="text-decoration: none; padding: 6px 14px; font-weight: bold; border-radius: 4px;">
+      Tải file mẫu Excel (.xlsx)
+    </a>
     </div>
 
     {% if not readonly %}
@@ -230,7 +230,12 @@
       <div>📎 <span class="dz-label">Bấm để chọn file hoặc kéo-thả vào đây</span></div>
       <div class="form-text">PDF, Word, Excel, ảnh, rar/zip — tối đa 25MB/file</div>
     </div>
-    <div style="margin-top:14px"><button class="btn btn-primary" type="submit">Tải lên</button></div>
+    <div style="margin-top:14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <button class="btn btn-primary" type="submit">Tải lên</button>
+      <a href="{{ url_for('export_vendor_quote') }}" class="btn" style="background-color: #0d6efd; color: #ffffff; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; display: inline-block;">
+        🖨️ In / Tải file báo giá hoàn chỉnh (.xlsx)
+      </a>
+    </div>
   </form>
   {% endif %}
 </div>
