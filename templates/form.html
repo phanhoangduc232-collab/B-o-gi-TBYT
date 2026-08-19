@@ -234,12 +234,24 @@
       <div>📎 <span class="dz-label">Bấm để chọn file hoặc kéo-thả vào đây</span></div>
       <div class="form-text">PDF, Word, Excel, ảnh, rar/zip — tối đa 25MB/file</div>
     </div>
-    <div style="margin-top:14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-      <button class="btn btn-primary" type="submit">Tải lên</button>
-      <a href="{{ url_for('export_vendor_quote') }}" class="btn" style="background-color: #0d6efd; color: #ffffff; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; display: inline-block;">
-        🖨️ In / Tải file báo giá hoàn chỉnh (.xlsx)
-      </a>
-    </div>
+    <div style="margin-top: 18px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+        <!-- Cụm bên trái: Tải lên tài liệu & In file -->
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-success" type="submit" style="background-color: #198754; color: #fff; padding: 8px 16px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer;">
+            📤 Tải lên tài liệu
+          </button>
+          <a href="{{ url_for('export_vendor_quote') }}" class="btn" style="background-color: #0d6efd; color: #ffffff; text-decoration: none; padding: 8px 16px; border-radius: 4px; font-weight: bold; display: inline-block;">
+            🖨️ In / Tải file báo giá hoàn chỉnh (.xlsx)
+          </a>
+        </div>
+
+        <!-- Cụm bên phải: Nút Đăng tải nộp chính thức -->
+        <div>
+          <a href="{{ url_for('thanh_cong') }}" class="btn" style="background-color: #fd7e14; color: #ffffff; text-decoration: none; padding: 9px 20px; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 2px 6px rgba(253, 126, 20, 0.4);">
+            🚀 Đăng tải báo giá (Hoàn tất)
+          </a>
+        </div>
+      </div>
   </form>
   {% endif %}
 </div>
