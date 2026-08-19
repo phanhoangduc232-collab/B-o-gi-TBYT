@@ -502,7 +502,7 @@ def upload():
     db.commit()
     db.close()
     flash("Đã tải file lên.", "success")
-    return redirect(url_for("thanh_cong"))
+    return redirect(url_for("form"))
 
 
 @app.route("/form/file/delete/<int:file_id>", methods=["POST"])
