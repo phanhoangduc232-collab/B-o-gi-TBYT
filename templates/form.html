@@ -51,14 +51,30 @@
     </div>
   </div>
 
-  <div style="margin: 15px 0; padding: 12px 16px; background: #e8f4fd; border: 1px solid #b6d4fe; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-    <div>
-      <b style="color: #084298; font-size: 14px;">📥 Biểu mẫu báo giá chuẩn (.xlsx):</b>
-      <div style="font-size: 12px; color: #6c757d; margin-top: 2px;">Tải file về điền danh mục, khóa công thức tự động theo yêu cầu báo giá</div>
+  <!-- Khối Tải file mẫu và Nộp file Excel tự động -->
+  <div style="margin: 15px 0; padding: 14px; background: #e8f4fd; border: 1px solid #b6d4fe; border-radius: 8px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+      <div>
+        <b style="color: #084298; font-size: 14px;">📥 1. Tải biểu mẫu báo giá chuẩn:</b>
+        <div style="font-size: 12px; color: #555;">Tải file về, điền các thiết bị chào giá theo đúng quy định.</div>
+      </div>
+      <a href="{{ url_for('static', filename='mau_bao_gia.xlsx') }}" download class="btn btn-sm btn-primary" style="text-decoration: none; padding: 6px 14px; font-weight: bold; border-radius: 4px;">
+        Tải file mẫu Excel (.xlsx)
+      </a>
     </div>
-    <a href="{{ url_for('static', filename='mau_bao_gia.xlsx') }}" download class="btn btn-sm btn-primary" style="text-decoration: none; padding: 6px 14px; font-weight: bold; border-radius: 4px;">
-      Tải file mẫu Excel
-    </a>
+
+    {% if not readonly %}
+    <hr style="border: 0; border-top: 1px dashed #b6d4fe; margin: 10px 0;">
+    <form method="post" action="{{ url_for('import_excel') }}" enctype="multipart/form-data" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <b style="color: #084298; font-size: 14px;">📤 2. Nộp nhanh danh mục bằng file Excel:</b>
+        <input type="file" name="excel_file" accept=".xlsx, .xls" required style="font-size: 13px; background: #fff; padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px;">
+      </div>
+      <button type="submit" class="btn btn-sm btn-success" style="padding: 6px 16px; font-weight: bold; background-color: #198754; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
+        🚀 Đọc file & Tự động nhập vào bảng
+      </button>
+    </form>
+    {% endif %}
   </div>
   <div class="table-wrap">
     <table>
