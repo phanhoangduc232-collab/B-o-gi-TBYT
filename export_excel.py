@@ -2,7 +2,8 @@
 """
 Xuat toan bo bao gia da thu thap tu website ra file Excel, dung DUNG cau truc
 sheet Tong_hop_bao_gia da duoc xay dung thu cong truoc do (bang chi tiet A-O,
-vung tham chieu Q-T, bang tong hop/chot gia du toan ben duoi).
+vung tham chieu Q-T, bang tong hop/chot gia du toan ben duoi) - de NCC noi tiep
+dung 1 quy trinh voi cac dot truoc.
 """
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -68,38 +69,46 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
         ws.cell(row=r, column=20, value=cat["sl"])          # Cột T
     ref_last_row = 4 + len(categories)
 
-    # 3. ĐIỀN DỮ LIỆU TỪ CÁC NHÀ THẦU ĐÃ NỘP
+    # 3. ĐIỀN DỮ LIỆU TỪ CÁC NHÀ THẦU ĐÃ NỘP (Truy xuất dữ liệu an toàn)
     r = DETAIL_START_ROW
     for item in all_items:
         v = vendor_by_id.get(item["vendor_id"])
         if not v:
             continue
-        
-        # Định dạng chuẩn mã thiết bị dạng "TB 01", "TB 02", "TB 07"...
-        ma_raw = item.get("ma_danh_muc", "")
+
+        ma_raw = item["ma_danh_muc"] or ""
         if len(ma_raw) == 4 and ma_raw.upper().startswith("TB") and ma_raw[2:].isdigit():
             ma_display = f"TB {ma_raw[2:]}"
         else:
             ma_display = ma_raw
 
+        ten_ncc = v["ten_ncc"] or ""
+        mst = v["mst"] if ("mst" in v.keys() and v["mst"]) else ""
+        dia_chi = v["dia_chi"] if ("dia_chi" in v.keys() and v["dia_chi"]) else ""
+        model = item["model"] or ""
+        hang_sx = item["hang_sx"] or ""
+        xuat_xu = item["xuat_xu"] or ""
+        don_gia = item["don_gia"]
+        ngay_bao_gia = item["ngay_bao_gia"] if ("ngay_bao_gia" in item.keys() and item["ngay_bao_gia"]) else ""
+
         # Cột A: Hiển thị Mã thiết bị TB 01, TB 02...
         ws.cell(row=r, column=1, value=ma_display)
         ws.cell(row=r, column=2, value=next((c["ten"] for c in categories if c["ma"] == item["ma_danh_muc"]), item["ma_danh_muc"]))
-        ws.cell(row=r, column=3, value=v["ten_ncc"])
-        ws.cell(row=r, column=4, value=v["mst"] if "mst" in v.keys() else "")
-        ws.cell(row=r, column=5, value=v["dia_chi"] if "dia_chi" in v.keys() else "")
-        ws.cell(row=r, column=6, value=item.get("model", ""))
-        ws.cell(row=r, column=7, value=item.get("hang_sx", ""))
-        ws.cell(row=r, column=8, value=item.get("xuat_xu", ""))
+        ws.cell(row=r, column=3, value=ten_ncc)
+        ws.cell(row=r, column=4, value=mst)
+        ws.cell(row=r, column=5, value=dia_chi)
+        ws.cell(row=r, column=6, value=model)
+        ws.cell(row=r, column=7, value=hang_sx)
+        ws.cell(row=r, column=8, value=xuat_xu)
         ws.cell(row=r, column=9, value=f'=IF($B{r}="","",VLOOKUP($B{r},$R$5:$T${ref_last_row},3,0))')
         ws.cell(row=r, column=10, value=f'=IF($B{r}="","",VLOOKUP($B{r},$R$5:$T${ref_last_row},2,0))')
-        ws.cell(row=r, column=11, value=item.get("don_gia"))
+        ws.cell(row=r, column=11, value=don_gia)
         ws.cell(row=r, column=12, value=f'=IF(OR($I{r}="",$K{r}=""),"",$I{r}*$K{r})')
-        ws.cell(row=r, column=13, value=item.get("ngay_bao_gia", ""))
+        ws.cell(row=r, column=13, value=ngay_bao_gia)
 
         maint_match = next((m for m in all_maint if m["vendor_id"] == item["vendor_id"] and m["ma_danh_muc"] == item["ma_danh_muc"]), None)
         if maint_match:
-            ws.cell(row=r, column=14, value=maint_match.get("don_gia_baotri"))
+            ws.cell(row=r, column=14, value=maint_match["don_gia_baotri"])
         ws.cell(row=r, column=15, value=f'=IF(OR($I{r}="",$N{r}=""),"",$I{r}*$N{r})')
         r += 1
 
@@ -137,7 +146,7 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
         dxf=DifferentialStyle(fill=red_fill),
         stopIfTrue=False,
     )
-    # Áp dụng định dạng màu cho toàn bộ dòng dữ liệu (cột A đến O)
+    # Áp dụng tô màu toàn bộ dòng cho dải ô A đến O
     ws.conditional_formatting.add(f"A{DETAIL_START_ROW}:O{last_detail_row}", rule_min)
     ws.conditional_formatting.add(f"A{DETAIL_START_ROW}:O{last_detail_row}", rule_max)
 
