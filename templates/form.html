@@ -80,7 +80,9 @@
     <table>
       <thead><tr>
         <th>Danh mục</th><th>Tên thương mại</th><th>Model</th><th>Hãng SX</th><th>Xuất xứ</th>
-        <th style="text-align:right">Đơn giá (đã VAT)</th><th>Ngày báo giá</th><th></th>
+        <th style="text-align:right">Đơn giá (đã VAT)</th>
+        <th style="text-align:right">Thành tiền (VNĐ)</th>
+        <th></th>
       </tr></thead>
       <tbody>
         {% for it in items %}
@@ -91,7 +93,9 @@
           <td>{{ it['hang_sx'] }}</td>
           <td>{{ it['xuat_xu'] }}</td>
           <td style="text-align:right">{{ '{:,.0f}'.format(it['don_gia']) if it['don_gia'] is not none else '' }}</td>
-          <td>{{ it['ngay_bao_gia'] }}</td>
+          <td style="text-align:right; font-weight: bold; color: #0d6efd;">
+  {{ '{:,.0f}'.format(it['don_gia'] * category_by_ma[it['ma_danh_muc']]['sl']) if (it['don_gia'] and it['ma_danh_muc'] in category_by_ma) else '' }}
+</td>
           <td>
             {% if not readonly %}
             <form method="post" action="{{ url_for('item_delete', item_id=it['id']) }}" onsubmit="return confirm('Xoá dòng này?');">
