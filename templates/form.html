@@ -33,10 +33,10 @@
     <div class="grid grid-2">
       <div class="field"><label>Tên nhà cung cấp</label><input type="text" value="{{ vendor['ten_ncc'] }}" disabled></div>
       <div class="field"><label>Mã số thuế</label><input type="text" value="{{ vendor['mst'] }}" disabled></div>
-      <div class="field"><label>Địa chỉ</label><input type="text" name="dia_chi" value="{{ vendor['dia_chi'] or '' }}" {{ 'disabled' if readonly }}></div>
-      <div class="field"><label>Người liên hệ</label><input type="text" name="nguoi_lien_he" value="{{ vendor['nguoi_lien_he'] or '' }}" {{ 'disabled' if readonly }}></div>
-      <div class="field"><label>Số điện thoại</label><input type="tel" name="sdt" value="{{ vendor['sdt'] or '' }}" {{ 'disabled' if readonly }}></div>
-      <div class="field"><label>Email</label><input type="email" name="email" value="{{ vendor['email'] or '' }}" {{ 'disabled' if readonly }}></div>
+      <div class="field"><label>Địa chỉ <span style="color:red">*</span></label><input type="text" name="dia_chi" value="{{ vendor['dia_chi'] or '' }}" required {{ 'disabled' if readonly }}></div>
+<div class="field"><label>Người liên hệ <span style="color:red">*</span></label><input type="text" name="nguoi_lien_he" value="{{ vendor['nguoi_lien_he'] or '' }}" required {{ 'disabled' if readonly }}></div>
+<div class="field"><label>Số điện thoại <span style="color:red">*</span></label><input type="tel" name="sdt" value="{{ vendor['sdt'] or '' }}" required {{ 'disabled' if readonly }}></div>
+<div class="field"><label>Email <span style="color:red">*</span></label><input type="email" name="email" value="{{ vendor['email'] or '' }}" required {{ 'disabled' if readonly }}></div>
     </div>
     {% if not readonly %}<button class="btn btn-primary" type="submit">Lưu thông tin liên hệ</button>{% endif %}
   </form>
