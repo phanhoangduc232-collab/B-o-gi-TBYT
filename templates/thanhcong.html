@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Nộp báo giá thành công{% endblock %}
+{% block content %}
+
+<div style="max-width: 700px; margin: 40px auto; text-align: center;">
+  <div class="card" style="padding: 40px 30px; border-top: 5px solid #198754; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+    
+    <!-- Biểu tượng tích xanh thành công -->
+    <div style="width: 80px; height: 80px; line-height: 80px; border-radius: 50%; background-color: #d1e7dd; color: #0f5132; font-size: 40px; margin: 0 auto 20px;">
+      ✓
+    </div>
+
+    <h2 style="color: #0f5132; margin-bottom: 10px; font-weight: bold;">NỘP HỒ SƠ BÁO GIÁ THÀNH CÔNG!</h2>
+    <p style="color: #495057; font-size: 15px; line-height: 1.6; margin-bottom: 20px;">
+      Hệ thống đã ghi nhận hồ sơ và tài liệu báo giá của quý công ty cho gói thầu <b>{{ goi_thau_ten }}</b> (YCBG số {{ ycbg_so }}).
+    </p>
+
+    <!-- Khung Lưu ý nộp bản cứng -->
+    <div style="margin: 0 auto 25px; padding: 14px 18px; background-color: #fff3cd; border: 1px solid #ffe69c; border-left: 5px solid #ffc107; border-radius: 6px; text-align: left;">
+      <b style="color: #856404; font-size: 14px;">⚠️ Lưu ý:</b>
+      <span style="color: #664d03; font-size: 14px; line-height: 1.5; display: inline-block; margin-top: 2px;">
+        Hệ thống đang trong giai đoạn thử nghiệm. Nhà thầu vui lòng nộp bản cứng vào <b>Phòng 201 Nhà M, Bệnh viện E</b> để đảm bảo quyền lợi và thông tin chính xác nhất. Xin trân trọng cảm ơn!
+      </span>
+    </div>
+
+    <!-- Khung tóm tắt thông tin nhà cung cấp -->
+    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; text-align: left; margin-bottom: 30px;">
+      <div style="margin-bottom: 8px;"><b>🏢 Đơn vị báo giá:</b> {{ vendor['ten_ncc'] }}</div>
+      <div style="margin-bottom: 8px;"><b>📌 Mã số thuế:</b> {{ vendor['mst'] }}</div>
+      <div style="margin-bottom: 8px;"><b>👤 Người liên hệ:</b> {{ vendor['nguoi_lien_he'] or '---' }} ({{ vendor['sdt'] or '---' }})</div>
+      <div style="margin-bottom: 8px;"><b>📋 Số lượng thiết bị chào giá:</b> <span style="color: #0d6efd; font-weight: bold;">{{ item_count }}</span> danh mục</div>
+      <div style="margin-bottom: 0;"><b>📁 Tài liệu đính kèm:</b> <span style="color: #198754; font-weight: bold;">{{ file_count }}</span> file đã tải lên</div>
+    </div>
+
+    <!-- Các nút thao tác -->
+    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+      <a href="{{ url_for('form') }}" class="btn btn-outline" style="padding: 10px 20px; font-weight: bold; text-decoration: none; border: 1px solid #6c757d; color: #495057; border-radius: 6px;">
+        🔍 Xem lại / Chỉnh sửa hồ sơ
+      </a>
+      <a href="{{ url_for('export_vendor_quote') }}" class="btn btn-primary" style="padding: 10px 20px; font-weight: bold; text-decoration: none; background-color: #0d6efd; color: #fff; border-radius: 6px;">
+        🖨️ Tải file báo giá (.xlsx)
+      </a>
+      <a href="{{ url_for('logout') }}" class="btn btn-danger" style="padding: 10px 20px; font-weight: bold; text-decoration: none; background-color: #dc3545; color: #fff; border-radius: 6px;">
+        🚪 Đăng xuất
+      </a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
