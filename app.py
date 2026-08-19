@@ -529,7 +529,74 @@ def file_download_own(file_id):
     if not row:
         abort(404)
     return send_from_directory(os.path.join(UPLOAD_DIR, str(v["id"])), row["stored_filename"], as_attachment=True, download_name=row["original_filename"])
+from flask import send_file
+import openpyxl
+from openpyxl.styles import Font, Border, Side
 
+@app.route("/form/export-quote")
+def export_vendor_quote():
+    v = require_vendor()
+    if not v:
+        return redirect(url_for("dangky"))
+
+    # Đảm bảo đọc đúng file mẫu mới trong thư mục static
+    template_path = os.path.join(BASE_DIR, "static", "Mau_inbaogia.xlsx")
+    if not os.path.exists(template_path):
+        flash("Không tìm thấy file mẫu Mau_import_baogia.xlsx trong thư mục static!", "danger")
+        return redirect(url_for("form"))
+
+    db = get_db()
+    items = db.execute(
+        "SELECT * FROM quote_items WHERE vendor_id=? ORDER BY id", (v["id"],)
+    ).fetchall()
+    db.close()
+
+    wb = openpyxl.load_workbook(template_path)
+    ws = wb["Phụ lục I Báo giá"] if "Phụ lục I Báo giá" in wb.sheetnames else wb.worksheets[0]
+
+    # 1. Ghi thông tin nhà cung cấp
+    ws["B5"] = v["ten_ncc"] or ""
+    ws["B6"] = v["dia_chi"] or ""
+    ws["B7"] = v["mst"] or ""
+    ws["B8"] = v["nguoi_lien_he"] or ""
+    ws["B9"] = v["sdt"] or ""
+    ws["B10"] = v["email"] or ""
+
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+    font_cell = Font(name="Times New Roman", size=11)
+
+    # 2. Ghi danh mục thiết bị từ dòng 14
+    start_row = 14
+    for idx, item in enumerate(items):
+        r = start_row + idx
+        ws.cell(row=r, column=1, value=item["ma_danh_muc"])
+        ws.cell(row=r, column=3, value=item["model"] or "")
+        ws.cell(row=r, column=4, value=item["hang_sx"] or "")
+        ws.cell(row=r, column=5, value="2026")
+        ws.cell(row=r, column=6, value=item["xuat_xu"] or "")
+        ws.cell(row=r, column=9, value=item["don_gia"])
+
+        for c in range(1, 11):
+            cell = ws.cell(row=r, column=c)
+            cell.font = font_cell
+            cell.border = thin_border
+            if c in [7, 9, 10]:
+                cell.number_format = "#,##0"
+
+    out_io = io.BytesIO()
+    wb.save(out_io)
+    out_io.seek(0)
+
+    filename = f"Bao_gia_{v['mst']}_{now_vn().strftime('%Y%m%d')}.xlsx"
+    return send_file(
+        out_io,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # -------------------------------------------------------------- admin area --
 
