@@ -272,7 +272,8 @@ def import_excel():
 
     try:
         wb = openpyxl.load_workbook(file, data_only=True)
-        # Tìm sheet Phụ lục I
+        
+        # 1. Tìm đúng sheet Phụ lục I Báo giá
         target_sheet_name = None
         for name in wb.sheetnames:
             if "Phụ lục I" in name or "Báo giá" in name:
@@ -282,50 +283,57 @@ def import_excel():
             target_sheet_name = wb.sheetnames[0]
 
         ws = wb[target_sheet_name]
-
         db = get_db()
         imported_count = 0
 
-        # Quét dữ liệu từ dòng 11 đến dòng 50 (dòng chứa danh mục TBYT)
-        for row in range(11, 51):
+        # 2. Quét thông minh từ dòng 4 đến hết bảng dữ liệu (tối đa dòng 100)
+        for row in range(4, min(ws.max_row + 1, 100)):
             ma_raw = ws.cell(row=row, column=1).value  # Cột A: STT / Mã trong YCBG
             if not ma_raw:
                 continue
 
-            ma = str(ma_raw).strip()
-            # Chuẩn hóa mã (ví dụ TB 01 -> TB01 nếu cần)
-            ma_clean = ma.replace(" ", "")
+            ma_str = str(ma_raw).strip()
+            # Bỏ qua các dòng tiêu đề hoặc ghi chú
+            if "STT" in ma_str or "Báo giá" in ma_str or "cam kết" in ma_str.lower():
+                continue
 
-            # Tìm xem mã có khớp với danh mục mời thầu không
+            # Xóa dấu cách để khớp chuẩn (Ví dụ: "TB 01" -> "TB01")
+            ma_clean = ma_str.replace(" ", "").upper()
+
+            # Khớp với mã danh mục của gói thầu
             matched_code = None
             for c_code in CATEGORY_BY_MA.keys():
-                if c_code.replace(" ", "").upper() == ma_clean.upper():
+                if c_code.replace(" ", "").upper() == ma_clean:
                     matched_code = c_code
                     break
 
             if not matched_code:
                 continue
 
+            # Lấy các thông tin thiết bị
+            ten_tm = str(ws.cell(row=row, column=2).value or "").strip()     # Cột B: Danh mục TBYT
             model = str(ws.cell(row=row, column=3).value or "").strip()      # Cột C: Model
             hang_sx = str(ws.cell(row=row, column=4).value or "").strip()    # Cột D: Hãng SX
             xuat_xu = str(ws.cell(row=row, column=6).value or "").strip()    # Cột F: Xuất xứ
-            
-            # Cột I: Đơn giá đã bao gồm VAT & dịch vụ
+
+            # Cột I: Đơn giá đã bao gồm thuế phí (Cột 9)
             don_gia_raw = ws.cell(row=row, column=9).value
             don_gia = None
             if don_gia_raw is not None:
                 try:
-                    don_gia = int(float(str(don_gia_raw).replace(",", "").strip()))
+                    # Làm sạch dấu phẩy/chấm nếu lưu dạng chuỗi
+                    val_clean = str(don_gia_raw).replace(",", "").replace(".", "").strip()
+                    don_gia = int(float(val_clean)) if val_clean else None
                 except ValueError:
                     don_gia = None
 
-            # Xóa dòng cũ nếu nhà thầu import lại cùng mã thiết bị
+            # Xóa dòng cũ nếu nhà thầu import lại cùng một mã thiết bị
             db.execute(
                 "DELETE FROM quote_items WHERE vendor_id=? AND ma_danh_muc=?",
                 (v["id"], matched_code),
             )
 
-            # Thêm dòng báo giá mới vào cơ sở dữ liệu
+            # Thêm dòng báo giá vào database
             db.execute(
                 """INSERT INTO quote_items
                    (vendor_id, ma_danh_muc, ten_thuong_mai, model, hang_sx, xuat_xu, don_gia, ngay_bao_gia, created_at)
@@ -333,7 +341,7 @@ def import_excel():
                 (
                     v["id"],
                     matched_code,
-                    ws.cell(row=row, column=2).value or "",
+                    ten_tm,
                     model,
                     hang_sx,
                     xuat_xu,
@@ -348,7 +356,7 @@ def import_excel():
         db.close()
 
         if imported_count > 0:
-            flash(f"Đã tự động đọc và nhập thành công {imported_count} danh mục thiết bị từ file Excel!", "success")
+            flash(f"✅ Đã tự động đọc và nhập thành công {imported_count} danh mục thiết bị từ file Excel!", "success")
         else:
             flash("Không tìm thấy dòng thiết bị nào hợp lệ trong file Excel. Vui lòng kiểm tra lại đúng mẫu!", "warning")
 
