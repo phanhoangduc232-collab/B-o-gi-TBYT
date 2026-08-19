@@ -502,7 +502,7 @@ def upload():
     db.commit()
     db.close()
     flash("Đã tải file lên.", "success")
-    return redirect(url_for("form"))
+    return redirect(url_for("thanh_cong"))
 
 
 @app.route("/form/file/delete/<int:file_id>", methods=["POST"])
@@ -626,7 +626,24 @@ def export_vendor_quote():
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+@app.route("/thanh-cong")
+def thanh_cong():
+    v = require_vendor()
+    if not v:
+        return redirect(url_for("dangky"))
 
+    db = get_db()
+    items = db.execute("SELECT COUNT(*) as cnt FROM quote_items WHERE vendor_id=?", (v["id"],)).fetchone()
+    files = db.execute("SELECT COUNT(*) as cnt FROM files WHERE vendor_id=?", (v["id"],)).fetchone()
+    vendor_row = db.execute("SELECT * FROM vendors WHERE id=?", (v["id"],)).fetchone()
+    db.close()
+
+    return render_template(
+        "thanhcong.html",
+        vendor=vendor_row,
+        item_count=items["cnt"] if items else 0,
+        file_count=files["cnt"] if files else 0,
+    )
 # -------------------------------------------------------------- admin area --
 
 def admin_ok():
