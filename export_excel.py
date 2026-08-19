@@ -2,7 +2,8 @@
 """
 Xuat toan bo bao gia da thu thap tu website ra file Excel, dung DUNG cau truc
 sheet Tong_hop_bao_gia da duoc xay dung thu cong truoc do (bang chi tiet A-O,
-vung tham chieu Q-T, bang tong hop/chot gia du toan ben duoi).
+vung tham chieu Q-T, bang tong hop/chot gia du toan ben duoi) - de NCC noi tiep
+dung 1 quy trinh voi cac dot truoc.
 """
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -25,12 +26,10 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
     ws.title = "Tong_hop_bao_gia"
 
     ws["A1"] = "TỔNG HỢP BÁO GIÁ - GÓI THẦU TBYT (xuất tự động từ Cổng thu thập báo giá trực tuyến)"
-    ws["A2"] = (
-        "Nền XANH = NCC chào giá THẤP NHẤT | Nền ĐỎ = NCC chào giá CAO NHẤT | "
-        "Cột N,O tham khảo (bảo trì mở rộng) | Cột M/O bảng tổng hợp bên dưới do Bệnh viện tự quyết định"
-    )
+    ws["A2"] = ("Nền XANH = NCC chào giá THẤP NHẤT | Nền ĐỎ = NCC chào giá CAO NHẤT | Cột N,O tham khảo (bảo trì mở rộng) | "
+                "Cột M/O bảng tổng hợp bên dưới do Bệnh viện tự quyết định")
 
-    # 1. TIÊU ĐỀ BẢNG CHI TIẾT (Đã chèn thêm MST và Địa chỉ công ty)
+    # headers: Bổ sung thêm Mã số thuế (cột 4) và Địa chỉ công ty (cột 5)
     headers = [
         "STT", "Danh mục thiết bị y tế", "Tên nhà cung cấp", "Mã số thuế", "Địa chỉ công ty",
         "Ký/mã/nhãn hiệu/Model", "Hãng sản xuất", "Xuất xứ", "Số lượng", "ĐVT",
@@ -45,7 +44,7 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
         c.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
         c.border = BORDER
 
-    # 2. VÙNG THAM CHIẾU DANH MỤC (Dời sang cột Q-T để tránh đè dữ liệu)
+    # vung tham chieu danh muc Q-T (cột 17-20)
     ws["Q4"] = "STT"
     ws["R4"] = "Danh mục thiết bị y tế (Vùng tham chiếu - KHÔNG XOÁ)"
     ws["S4"] = "ĐVT"
@@ -57,13 +56,13 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
 
     for i, cat in enumerate(categories):
         r = 5 + i
-        ws.cell(row=r, column=17, value=i + 1)        # Cột Q
-        ws.cell(row=r, column=18, value=cat["ten"])   # Cột R
-        ws.cell(row=r, column=19, value=cat["dvt"])   # Cột S
-        ws.cell(row=r, column=20, value=cat["sl"])    # Cột T
+        ws.cell(row=r, column=17, value=i + 1)        # Q
+        ws.cell(row=r, column=18, value=cat["ten"])   # R
+        ws.cell(row=r, column=19, value=cat["dvt"])   # S
+        ws.cell(row=r, column=20, value=cat["sl"])    # T
     ref_last_row = 4 + len(categories)
 
-    # 3. ĐIỀN DỮ LIỆU TỪ CÁC NHÀ THẦU ĐÃ NỘP
+    # build detail rows tu du lieu NCC da nop
     r = DETAIL_START_ROW
     stt = 1
     for item in all_items:
@@ -72,28 +71,26 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
             continue
         ws.cell(row=r, column=1, value=stt)
         ws.cell(row=r, column=2, value=next((c["ten"] for c in categories if c["ma"] == item["ma_danh_muc"]), item["ma_danh_muc"]))
-        ws.cell(row=r, column=3, value=v.get("ten_ncc", ""))
-        ws.cell(row=r, column=4, value=v.get("mst", ""))
-        ws.cell(row=r, column=5, value=v.get("dia_chi", ""))
-        ws.cell(row=r, column=6, value=item.get("model", ""))
-        ws.cell(row=r, column=7, value=item.get("hang_sx", ""))
-        ws.cell(row=r, column=8, value=item.get("xuat_xu", ""))
-        # VLOOKUP SL từ cột T (cột thứ 3 trong bảng tham chiếu R:T)
+        ws.cell(row=r, column=3, value=v["ten_ncc"])
+        ws.cell(row=r, column=4, value=v["mst"] if "mst" in v.keys() else "")
+        ws.cell(row=r, column=5, value=v["dia_chi"] if "dia_chi" in v.keys() else "")
+        ws.cell(row=r, column=6, value=item["model"])
+        ws.cell(row=r, column=7, value=item["hang_sx"])
+        ws.cell(row=r, column=8, value=item["xuat_xu"])
         ws.cell(row=r, column=9, value=f'=IF($B{r}="","",VLOOKUP($B{r},$R$5:$T${ref_last_row},3,0))')
-        # VLOOKUP ĐVT từ cột S (cột thứ 2 trong bảng tham chiếu R:T)
         ws.cell(row=r, column=10, value=f'=IF($B{r}="","",VLOOKUP($B{r},$R$5:$T${ref_last_row},2,0))')
-        ws.cell(row=r, column=11, value=item.get("don_gia"))
+        ws.cell(row=r, column=11, value=item["don_gia"])
         ws.cell(row=r, column=12, value=f'=IF(OR($I{r}="",$K{r}=""),"",$I{r}*$K{r})')
-        ws.cell(row=r, column=13, value=item.get("ngay_bao_gia", ""))
+        ws.cell(row=r, column=13, value=item["ngay_bao_gia"])
 
         maint_match = next((m for m in all_maint if m["vendor_id"] == item["vendor_id"] and m["ma_danh_muc"] == item["ma_danh_muc"]), None)
         if maint_match:
-            ws.cell(row=r, column=14, value=maint_match.get("don_gia_baotri"))
+            ws.cell(row=r, column=14, value=maint_match["don_gia_baotri"])
         ws.cell(row=r, column=15, value=f'=IF(OR($I{r}="",$N{r}=""),"",$I{r}*$N{r})')
         r += 1
         stt += 1
 
-    # Điền công thức rỗng cho các dòng còn lại đến DETAIL_END_ROW
+    # dien cong thuc rong cho cac dong con lai den DETAIL_END_ROW
     for rr in range(r, DETAIL_END_ROW + 1):
         ws.cell(row=rr, column=1, value=stt)
         ws.cell(row=rr, column=9, value=f'=IF($B{rr}="","",VLOOKUP($B{rr},$R$5:$T${ref_last_row},3,0))')
@@ -104,12 +101,10 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
 
     last_detail_row = DETAIL_END_ROW
 
-    # Data validation cho cột B
     dv = DataValidation(type="list", formula1=f"$R$5:$R${ref_last_row}", allow_blank=True)
     ws.add_data_validation(dv)
     dv.add(f"B{DETAIL_START_ROW}:B{last_detail_row}")
 
-    # 4. TÔ MÀU MIN / MAX (Theo cột Đơn giá K)
     green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
     red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
     rng = f"A{DETAIL_START_ROW}:O{last_detail_row}"
@@ -133,15 +128,12 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
     ws.conditional_formatting.add(rng, rule_min)
     ws.conditional_formatting.add(rng, rule_max)
 
-    # 5. BẢNG TỔNG HỢP GIÁ & CHỐT GIÁ DỰ TOÁN
+    # bang tong hop & chot gia du toan
     sum_start = last_detail_row + 3
     ws.cell(row=sum_start - 2, column=1, value="BẢNG TỔNG HỢP GIÁ & CHỐT GIÁ DỰ TOÁN THEO TỪNG DANH MỤC").font = Font(bold=True, size=12)
-    hdr2 = [
-        "STT", "Danh mục thiết bị y tế", "ĐVT", "SL\nyêu cầu", "Số báo\ngiá nhận\nđược",
-        "Giá thấp nhất\n(đã VAT)", "NCC chào\ngiá thấp nhất", "Giá cao nhất\n(đã VAT)",
-        "NCC chào\ngiá cao nhất", "Giá trung bình\n(đã VAT)", "% Chênh\nlệch", "Cảnh báo",
-        "Giá dự toán\nCHỐT (đã VAT)", "Thành tiền\ndự toán", "Căn cứ chọn giá"
-    ]
+    hdr2 = ["STT", "Danh mục thiết bị y tế", "ĐVT", "SL\nyêu cầu", "Số báo\ngiá nhận\nđược", "Giá thấp nhất\n(đã VAT)",
+            "NCC chào\ngiá thấp nhất", "Giá cao nhất\n(đã VAT)", "NCC chào\ngiá cao nhất", "Giá trung bình\n(đã VAT)",
+            "% Chênh\nlệch", "Cảnh báo", "Giá dự toán\nCHỐT (đã VAT)", "Thành tiền\ndự toán", "Căn cứ chọn giá"]
     for i, h in enumerate(hdr2, start=1):
         c = ws.cell(row=sum_start, column=i, value=h)
         c.font = HEADER_FONT
@@ -185,12 +177,8 @@ def build_workbook(vendor_by_id, all_items, all_maint, categories):
     ws.cell(row=total_row, column=2, value="TỔNG DỰ TOÁN GÓI THẦU").font = Font(bold=True)
     ws.cell(row=total_row, column=14, value=f"=SUM(N{sum_start+1}:N{total_row-1})").font = Font(bold=True)
 
-    # 6. ĐỘ RỘNG CỘT
-    widths = {
-        1: 6, 2: 30, 3: 26, 4: 15, 5: 32, 6: 16, 7: 18, 8: 12, 9: 10, 10: 8,
-        11: 16, 12: 16, 13: 12, 14: 16, 15: 16,
-        17: 6, 18: 34, 19: 10, 20: 10
-    }
+    widths = {1: 6, 2: 30, 3: 26, 4: 15, 5: 32, 6: 16, 7: 18, 8: 12, 9: 10, 10: 8, 11: 16, 12: 16, 13: 12, 14: 16, 15: 16,
+              17: 6, 18: 34, 19: 10, 20: 10}
     for col, w in widths.items():
         ws.column_dimensions[openpyxl.utils.get_column_letter(col)].width = w
 
