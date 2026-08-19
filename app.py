@@ -250,7 +250,112 @@ def form_company():
     flash("Đã lưu thông tin liên hệ.", "success")
     return redirect(url_for("form"))
 
+import openpyxl
 
+@app.route("/form/import-excel", methods=["POST"])
+def import_excel():
+    v = require_vendor()
+    if not v:
+        return redirect(url_for("dangky"))
+    if window_status() == "after":
+        flash("Đã hết thời hạn nhận báo giá, không thể nhập thêm.", "danger")
+        return redirect(url_for("form"))
+
+    file = request.files.get("excel_file")
+    if not file or file.filename == "":
+        flash("Vui lòng chọn file Excel để tải lên.", "danger")
+        return redirect(url_for("form"))
+
+    if not (file.filename.endswith(".xlsx") or file.filename.endswith(".xls")):
+        flash("Định dạng file không hợp lệ! Vui lòng chỉ tải lên file Excel (.xlsx, .xls).", "danger")
+        return redirect(url_for("form"))
+
+    try:
+        wb = openpyxl.load_workbook(file, data_only=True)
+        # Tìm sheet Phụ lục I
+        target_sheet_name = None
+        for name in wb.sheetnames:
+            if "Phụ lục I" in name or "Báo giá" in name:
+                target_sheet_name = name
+                break
+        if not target_sheet_name:
+            target_sheet_name = wb.sheetnames[0]
+
+        ws = wb[target_sheet_name]
+
+        db = get_db()
+        imported_count = 0
+
+        # Quét dữ liệu từ dòng 11 đến dòng 50 (dòng chứa danh mục TBYT)
+        for row in range(11, 51):
+            ma_raw = ws.cell(row=row, column=1).value  # Cột A: STT / Mã trong YCBG
+            if not ma_raw:
+                continue
+
+            ma = str(ma_raw).strip()
+            # Chuẩn hóa mã (ví dụ TB 01 -> TB01 nếu cần)
+            ma_clean = ma.replace(" ", "")
+
+            # Tìm xem mã có khớp với danh mục mời thầu không
+            matched_code = None
+            for c_code in CATEGORY_BY_MA.keys():
+                if c_code.replace(" ", "").upper() == ma_clean.upper():
+                    matched_code = c_code
+                    break
+
+            if not matched_code:
+                continue
+
+            model = str(ws.cell(row=row, column=3).value or "").strip()      # Cột C: Model
+            hang_sx = str(ws.cell(row=row, column=4).value or "").strip()    # Cột D: Hãng SX
+            xuat_xu = str(ws.cell(row=row, column=6).value or "").strip()    # Cột F: Xuất xứ
+            
+            # Cột I: Đơn giá đã bao gồm VAT & dịch vụ
+            don_gia_raw = ws.cell(row=row, column=9).value
+            don_gia = None
+            if don_gia_raw is not None:
+                try:
+                    don_gia = int(float(str(don_gia_raw).replace(",", "").strip()))
+                except ValueError:
+                    don_gia = None
+
+            # Xóa dòng cũ nếu nhà thầu import lại cùng mã thiết bị
+            db.execute(
+                "DELETE FROM quote_items WHERE vendor_id=? AND ma_danh_muc=?",
+                (v["id"], matched_code),
+            )
+
+            # Thêm dòng báo giá mới vào cơ sở dữ liệu
+            db.execute(
+                """INSERT INTO quote_items
+                   (vendor_id, ma_danh_muc, ten_thuong_mai, model, hang_sx, xuat_xu, don_gia, ngay_bao_gia, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?)""",
+                (
+                    v["id"],
+                    matched_code,
+                    ws.cell(row=row, column=2).value or "",
+                    model,
+                    hang_sx,
+                    xuat_xu,
+                    don_gia,
+                    now_vn().strftime("%d/%m/%Y"),
+                    now_vn().isoformat(),
+                ),
+            )
+            imported_count += 1
+
+        db.commit()
+        db.close()
+
+        if imported_count > 0:
+            flash(f"Đã tự động đọc và nhập thành công {imported_count} danh mục thiết bị từ file Excel!", "success")
+        else:
+            flash("Không tìm thấy dòng thiết bị nào hợp lệ trong file Excel. Vui lòng kiểm tra lại đúng mẫu!", "warning")
+
+    except Exception as e:
+        flash(f"Lỗi khi đọc file Excel: {str(e)}", "danger")
+
+    return redirect(url_for("form"))
 @app.route("/form/item/add", methods=["POST"])
 def item_add():
     v = require_vendor()
