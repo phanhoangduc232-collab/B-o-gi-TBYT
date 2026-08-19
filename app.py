@@ -219,11 +219,11 @@ def form():
         maint=maint,
         files=files,
         categories=CATEGORIES,
+        category_by_ma=CATEGORY_BY_MA,
         file_tags=FILE_TAGS,
         readonly=readonly,
         status=status,
     )
-
 
 @app.route("/form/company", methods=["POST"])
 def form_company():
@@ -547,10 +547,13 @@ def export_vendor_quote():
     if not v:
         return redirect(url_for("dangky"))
 
-    # Đảm bảo đọc đúng file mẫu mới trong thư mục static
-    template_path = os.path.join(BASE_DIR, "static", "Mau_inbaogia.xlsx")
+    # Đọc file mẫu thực tế từ thư mục static
+    template_path = os.path.join(BASE_DIR, "static", "Mau_import_baogia.xlsx")
     if not os.path.exists(template_path):
-        flash("Không tìm thấy file mẫu Mau_import_baogia.xlsx trong thư mục static!", "danger")
+        template_path = os.path.join(BASE_DIR, "static", "Mau_inbaogia.xlsx")
+    
+    if not os.path.exists(template_path):
+        flash("Không tìm thấy file mẫu báo giá trong thư mục static!", "danger")
         return redirect(url_for("form"))
 
     db = get_db()
@@ -562,13 +565,21 @@ def export_vendor_quote():
     wb = openpyxl.load_workbook(template_path)
     ws = wb["Phụ lục I Báo giá"] if "Phụ lục I Báo giá" in wb.sheetnames else wb.worksheets[0]
 
-    # 1. Ghi thông tin nhà cung cấp
-    ws["B5"] = v["ten_ncc"] or ""
-    ws["B6"] = v["dia_chi"] or ""
-    ws["B7"] = v["mst"] or ""
-    ws["B8"] = v["nguoi_lien_he"] or ""
-    ws["B9"] = v["sdt"] or ""
-    ws["B10"] = v["email"] or ""
+    # 1. Điền thông tin nhà cung cấp (tự động nhận diện dòng)
+    for r in range(1, 12):
+        cell_val = str(ws.cell(row=r, column=1).value or "")
+        if "Tên nhà cung cấp" in cell_val or "Tên công ty" in cell_val:
+            ws.cell(row=r, column=2, value=v["ten_ncc"] or "")
+        elif "Địa chỉ" in cell_val:
+            ws.cell(row=r, column=2, value=v["dia_chi"] or "")
+        elif "Mã số thuế" in cell_val:
+            ws.cell(row=r, column=2, value=v["mst"] or "")
+        elif "Người liên hệ" in cell_val:
+            ws.cell(row=r, column=2, value=v["nguoi_lien_he"] or "")
+        elif "Số điện thoại" in cell_val:
+            ws.cell(row=r, column=2, value=v["sdt"] or "")
+        elif "Email" in cell_val:
+            ws.cell(row=r, column=2, value=v["email"] or "")
 
     thin_border = Border(
         left=Side(style='thin'), right=Side(style='thin'),
@@ -576,22 +587,48 @@ def export_vendor_quote():
     )
     font_cell = Font(name="Times New Roman", size=11)
 
-    # 2. Ghi danh mục thiết bị từ dòng 14
-    start_row = 14
+    # 2. Tự động tìm dòng bắt đầu của bảng báo giá
+    start_row = 4
+    for r in range(1, 15):
+        if "STT trong YCBG" in str(ws.cell(row=r, column=1).value or ""):
+            start_row = r + 1
+            break
+
+    # 3. Điền đầy đủ dữ liệu thiết bị vào từng cột
     for idx, item in enumerate(items):
         r = start_row + idx
-        ws.cell(row=r, column=1, value=item["ma_danh_muc"])
-        ws.cell(row=r, column=3, value=item["model"] or "")
-        ws.cell(row=r, column=4, value=item["hang_sx"] or "")
-        ws.cell(row=r, column=5, value="2026")
-        ws.cell(row=r, column=6, value=item["xuat_xu"] or "")
-        ws.cell(row=r, column=9, value=item["don_gia"])
+        ma_code = item["ma_danh_muc"]
+        cat_info = CATEGORY_BY_MA.get(ma_code, {})
 
+        # Chuẩn hóa mã hiển thị (ví dụ TB01 -> TB 01 để khớp hàm VLOOKUP nếu có)
+        formatted_ma = ma_code
+        if len(ma_code) == 4 and ma_code.startswith("TB"):
+            formatted_ma = f"TB {ma_code[2:]}"
+
+        ws.cell(row=r, column=1, value=formatted_ma)                                      # Cột A: Mã TB
+        ws.cell(row=r, column=2, value=cat_info.get("ten", item["ten_thuong_mai"] or "")) # Cột B: Tên thiết bị
+        ws.cell(row=r, column=3, value=item["model"] or "")                               # Cột C: Model
+        ws.cell(row=r, column=4, value=item["hang_sx"] or "")                             # Cột D: Hãng SX
+        ws.cell(row=r, column=5, value="2026")                                            # Cột E: Năm SX
+        ws.cell(row=r, column=6, value=item["xuat_xu"] or "")                             # Cột F: Xuất xứ
+        ws.cell(row=r, column=7, value=cat_info.get("sl", ""))                            # Cột G: Số lượng
+        ws.cell(row=r, column=8, value=cat_info.get("dvt", ""))                           # Cột H: Đơn vị tính
+        ws.cell(row=r, column=9, value=item["don_gia"])                                   # Cột I: Đơn giá
+
+        # Tính Thành tiền = Số lượng * Đơn giá
+        sl_val = cat_info.get("sl", 0)
+        dg_val = item["don_gia"] or 0
+        if sl_val and dg_val:
+            ws.cell(row=r, column=10, value=sl_val * dg_val)                              # Cột J: Thành tiền
+        else:
+            ws.cell(row=r, column=10, value="")
+
+        # Gán viền, định dạng font và dấu phân cách hàng nghìn
         for c in range(1, 11):
             cell = ws.cell(row=r, column=c)
             cell.font = font_cell
             cell.border = thin_border
-            if c in [7, 9, 10]:
+            if c in [7, 9, 10] and isinstance(cell.value, (int, float)):
                 cell.number_format = "#,##0"
 
     out_io = io.BytesIO()
